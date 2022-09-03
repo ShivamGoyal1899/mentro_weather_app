@@ -1,11 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
+import 'package:mentro_weather_app/data_services.dart';
+import 'package:mentro_weather_app/weather_model.dart';
+import 'package:mentro_weather_app/widgets/rounded_edge_divider.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    DataService dataService = DataService();
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -21,25 +27,33 @@ class HomeScreen extends StatelessWidget {
           ),
         ),
       ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(25.0, 10.0, 25.0, 25.0),
-        children: const [
-          WeatherInfo(),
-          Divider(
-            color: Colors.black,
-            height: 50.0,
-            thickness: 2.0,
-          ),
-          WeatherDetails(),
-        ],
+      body: FutureBuilder<Weather>(
+        future: dataService.getWeather(),
+        builder: (context, snapshot) => snapshot.hasData
+            ? ListView(
+                padding: const EdgeInsets.fromLTRB(25.0, 10.0, 25.0, 25.0),
+                children: [
+                  WeatherInfo(weather: snapshot.data!),
+                  const Divider(
+                    color: Colors.black,
+                    height: 50.0,
+                    thickness: 2.0,
+                  ),
+                  WeatherDetails(weather: snapshot.data!),
+                ],
+              )
+            : const Center(child: CircularProgressIndicator()),
       ),
     );
   }
 }
 
 class WeatherInfo extends StatelessWidget {
+  final Weather weather;
+
   const WeatherInfo({
     Key? key,
+    required this.weather,
   }) : super(key: key);
 
   @override
@@ -72,7 +86,8 @@ class WeatherInfo extends StatelessWidget {
             ),
             Expanded(
               child: Text(
-                "Sunday, 28th August",
+                DateFormat("EEE, dd MMMM").format(
+                    DateTime.fromMillisecondsSinceEpoch(weather.dt * 1000)),
                 style: GoogleFonts.nunitoSans(
                   fontWeight: FontWeight.w700,
                   fontSize: 20.0,
@@ -86,7 +101,7 @@ class WeatherInfo extends StatelessWidget {
           height: 15.0,
         ),
         Text(
-          "Bengaluru",
+          weather.name,
           style: GoogleFonts.nunitoSans(
             fontWeight: FontWeight.w700,
             fontSize: 40.0,
@@ -96,21 +111,21 @@ class WeatherInfo extends StatelessWidget {
           height: 10.0,
         ),
         Text(
-          "Day 25° | Night 23°",
+          "Day ${(weather.main.tempMax - 273.15).toInt()}° | Night ${(weather.main.tempMin - 273.15).toInt()}°",
           style: GoogleFonts.nunitoSans(
             fontWeight: FontWeight.w500,
             fontSize: 16.0,
           ),
         ),
         Text(
-          "24°",
+          "${(weather.main.temp - 273.15).toInt()}°",
           style: GoogleFonts.nunitoSans(
             fontWeight: FontWeight.w700,
             fontSize: 100.0,
           ),
         ),
         Text(
-          "Feels like 25°",
+          "Feels like ${(weather.main.feelsLike - 273.15).toInt()}°",
           style: GoogleFonts.nunitoSans(
             fontWeight: FontWeight.w500,
             fontSize: 16.0,
@@ -122,7 +137,12 @@ class WeatherInfo extends StatelessWidget {
 }
 
 class WeatherDetails extends StatelessWidget {
-  const WeatherDetails({Key? key}) : super(key: key);
+  final Weather weather;
+
+  const WeatherDetails({
+    Key? key,
+    required this.weather,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -153,30 +173,30 @@ class WeatherDetails extends StatelessWidget {
               mainAxisSpacing: 5.0,
               crossAxisSpacing: 5.0,
             ),
-            children: const [
+            children: [
               WeatherDetailCard(
                 title: "Humidity",
                 icon: Icons.water_drop_outlined,
                 accentColor: Colors.blue,
-                data: "79%",
+                data: "${weather.main.humidity}%",
               ),
               WeatherDetailCard(
                 title: "Visibility",
                 icon: Icons.wb_sunny_outlined,
                 accentColor: Colors.orange,
-                data: "6000 m",
+                data: "${weather.visibility} m",
               ),
               WeatherDetailCard(
                 title: "Wind",
                 icon: Icons.wind_power_outlined,
                 accentColor: Colors.purple,
-                data: "2.1 km/h",
+                data: "${weather.wind.speed} km/h",
               ),
               WeatherDetailCard(
                 title: "Pressure",
                 icon: Icons.settings_outlined,
                 accentColor: Colors.pink,
-                data: "1009 hPa",
+                data: "${weather.main.pressure} hPa",
               ),
             ],
           ),
@@ -254,24 +274,6 @@ class WeatherDetailCard extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class RoundedEdgeDivider extends StatelessWidget {
-  final Color color;
-
-  const RoundedEdgeDivider({Key? key, required this.color}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 3.0),
-      height: 5.0,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(5.0),
-        color: color,
       ),
     );
   }
